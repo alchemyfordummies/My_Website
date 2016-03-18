@@ -1,0 +1,10 @@
+*{margin: 0; padding: 0}
+
+#linkEntry {
+	text-align: center;
+	padding: 200px;
+}
+
+#label, #imageName {
+    display: inline-block;
+}

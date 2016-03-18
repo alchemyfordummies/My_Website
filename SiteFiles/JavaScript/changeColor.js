@@ -14,7 +14,7 @@ function revertColor(x)
 function randomColor()
 {
 	var randomColor = Math.round(
-	( (Math.random() * 1000) % 1000));
+	( Math.random()% 1000));
 
 	if (randomColor < 100)
 	{

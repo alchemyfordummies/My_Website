@@ -11,17 +11,17 @@ var animate = window.requestAnimationFrame ||
         window.webkitRequestAnimationFrame ||
         window.mozRequestAnimationFrame    ||
         function(callback) {window.setTimeout(callback, 1000/60)};
+var context;
 
-var canvas = document.createElement('canvas');
 //Sets the background's size
-var width = 400;
-var height = 600;
-canvas.width = width;
-canvas.height = height;
-var context = canvas.getContext('2d');
+//canvas.width = window.innerWidth;
+//canvas.height = window.innerHeight;
 
 window.onload = function() {
-    document.body.appendChild(canvas);
+    var canvas = document.getElementById('canvas');
+    context = canvas.getContext('2d');
+    context.canvas.width = window.innerWidth;
+    context.canvas.height = window.innerHeight;
     animate(step);
 };
 
@@ -33,7 +33,7 @@ var step = function() {
 
 var render = function() {
     context.fillStyle = "#000000";
-    context.fillRect(0, 0, width, height);
+    context.fillRect(0, 0,window.innerWidth, window.innerHeight);
     player.render();
     computer.render();
     ball.render();

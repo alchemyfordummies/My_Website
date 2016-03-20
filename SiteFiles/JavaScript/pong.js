@@ -1,22 +1,18 @@
-/**
- * Created by falco_000 on 3/18/2016.
- */
-
 /*
 Sets up the canvas for the game to be played on
 */
-
-
-var animate = window.requestAnimationFrame ||
-        window.webkitRequestAnimationFrame ||
-        window.mozRequestAnimationFrame    ||
-        function(callback) {window.setTimeout(callback, 1000/60)};
 var context;
+var keysDown = {};
 
+window.addEventListener("keydown", function(event) {
+    keysDown[event.keyCode] = true;
+});
+
+window.addEventListener("keyup", function(event) {
+    delete keysDown[event.keyCode];
+});
+        
 //Sets the background's size
-//canvas.width = window.innerWidth;
-//canvas.height = window.innerHeight;
-
 window.onload = function() {
     var canvas = document.getElementById('canvas');
     context = canvas.getContext('2d');
@@ -25,12 +21,28 @@ window.onload = function() {
     animate(step);
 };
 
+/*First major function in getting it all working*/
+//Each step in updating the canvas, updates what's
+//going on, renders it, then calls itself again
 var step = function() {
     update();
     render();
     animate(step);
 };
 
+/*Second major function*/
+//Does three different updates:
+//Updates the player
+//updates the computer (based on the ball's position)
+//Updates the ball based on where it hits
+var update = function() {
+    player.update();
+    computer.update(ball);
+    ball.update(player.paddle, computer.paddle);
+};
+
+//renders the canvas to the specified size, then renders the 
+//player paddle, the computer paddle, and the ball
 var render = function() {
     context.fillStyle = "#000000";
     context.fillRect(0, 0,window.innerWidth, window.innerHeight);
@@ -39,6 +51,13 @@ var render = function() {
     ball.render();
 };
 
+var animate = window.requestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame    ||
+        function(callback) {window.setTimeout(callback, 1000/60)};
+
+//creates a new paddle with given dimensions
+//and speed, etc
 function Paddle(x, y, width, height) {
     this.x = x;
     this.y = y;
@@ -48,27 +67,33 @@ function Paddle(x, y, width, height) {
     this.y_speed = 0;
 }
 
+//renders the given paddle
 Paddle.prototype.render = function() {
     context.fillStyle = "#0000FF";
     context.fillRect(this.x, this.y, this.width, this.height);
 };
 
+//New paddle of that size/dimension
 function Player() {
     this.paddle = new Paddle(175, 580, 50, 10);
 }
 
+//new paddle of that size/dimension
 function Computer() {
     this.paddle = new Paddle(175, 10, 50, 10);
 }
 
+//renders a player paddle
 Player.prototype.render = function() {
     this.paddle.render();
 };
 
+//renders a computer paddle
 Computer.prototype.render = function() {
     this.paddle.render();
 };
 
+//Creates a ball object
 function Ball(x, y) {
     this.x = x;
     this.y = y;
@@ -77,26 +102,27 @@ function Ball(x, y) {
     this.radius = 5;
 }
 
+//Renders the path of the ball
 Ball.prototype.render = function() {
     context.beginPath();
+    //Calculates the path based on those coordinates
     context.arc(this.x, this.y, this.radius, 2 * Math.PI, false);
     context.fillStyle = "#FFFFFF";
     context.fill();
 };
 
+//calls a player and computer and makes a ball at the specified coordinate
 var player = new Player();
 var computer = new Computer();
 var ball = new Ball(200, 300);
 
-var update = function() {
-    player.update();
-    computer.update(ball);
-    ball.update(player.paddle, computer.paddle);
-};
-
+//Updates the ball
 Ball.prototype.update = function(paddle1, paddle2) {
+    //adds the new speed to the old one        
     this.x += this.x_speed;
     this.y += this.y_speed;
+    //radius is 5, so it'll hit the wall 5 pixels before
+    //the middle, so we offset it by 5
     var top_x = this.x - 5;
     var top_y = this.y - 5;
     var bottom_x = this.x + 5;
@@ -117,6 +143,7 @@ Ball.prototype.update = function(paddle1, paddle2) {
         this.y = 300;
     }
 
+    //Condition for if it's in the top half
     if(top_y > 300) {
         if(top_y < (paddle1.y + paddle1.height) && bottom_y > paddle1.y && top_x < (paddle1.x + paddle1.width)
             && bottom_x > paddle1.x) {
@@ -125,6 +152,7 @@ Ball.prototype.update = function(paddle1, paddle2) {
             this.x_speed += (paddle1.x_speed / 2);
             this.y += this.y_speed;
         }
+    //condition for bottom half
     } else {
         if(top_y < (paddle2.y + paddle2.height) && bottom_y > paddle2.y && top_x < (paddle2.x + paddle2.width)
             && bottom_x > paddle2.x) {
@@ -136,20 +164,22 @@ Ball.prototype.update = function(paddle1, paddle2) {
     }
 };
 
+//Updates the player paddle
 Player.prototype.update = function() {
     for(var key in keysDown) {
+        //Conditions for a couple keys
         var value = Number(key);
         if(value == 37) { // left arrow
             this.paddle.move(-4, 0);
         } else if (value == 39) { // right arrow
             this.paddle.move(4, 0);
-        } else {
-            this.paddle.move(0, 0);
-        }
+        } 
     }
 };
 
+//Moves the paddle
 Paddle.prototype.move = function(x, y) {
+    //adds the coordinates to move it in whatever direction it needs
     this.x += x;
     this.y += y;
     this.x_speed = x;
@@ -163,30 +193,22 @@ Paddle.prototype.move = function(x, y) {
     }
 };
 
+//Updates the computer paddle based on the position of the ball
 Computer.prototype.update = function(ball) {
     var x_pos = ball.x;
+    //takes the difference in position between the ball and the paddle
     var diff = -((this.paddle.x + (this.paddle.width / 2)) - x_pos);
+    //helps make movement more efficient
     if(diff < 0 && diff < -4) { // max speed left
         diff = -5;
     } else if(diff > 0 && diff > 4) { // max speed right
         diff = 5;
     }
     this.paddle.move(diff, 0);
+    //won't fly offscreen
     if(this.paddle.x < 0) {
         this.paddle.x = 0;
     } else if (this.paddle.x + this.paddle.width > 400) {
         this.paddle.x = 400 - this.paddle.width;
     }
 };
-
-var keysDown = {};
-
-window.addEventListener("keydown", function(event) {
-    keysDown[event.keyCode] = true;
-});
-
-window.addEventListener("keyup", function(event) {
-    delete keysDown[event.keyCode];
-});
-
-

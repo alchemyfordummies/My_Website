@@ -1,8 +1,9 @@
 /*
-Sets up the canvas for the game to be played on
-*/
+ Sets up the canvas for the game to be played on
+ */
 var context;
 var keysDown = {};
+var balls;
 
 window.addEventListener("keydown", function(event) {
     keysDown[event.keyCode] = true;
@@ -11,7 +12,7 @@ window.addEventListener("keydown", function(event) {
 window.addEventListener("keyup", function(event) {
     delete keysDown[event.keyCode];
 });
-        
+
 //Sets the background's size
 window.onload = function() {
     var canvas = document.getElementById('canvas');
@@ -41,7 +42,7 @@ var update = function() {
     ball.update(player.paddle, computer.paddle);
 };
 
-//renders the canvas to the specified size, then renders the 
+//renders the canvas to the specified size, then renders the
 //player paddle, the computer paddle, and the ball
 var render = function() {
     context.fillStyle = "#000000";
@@ -52,9 +53,9 @@ var render = function() {
 };
 
 var animate = window.requestAnimationFrame ||
-        window.webkitRequestAnimationFrame ||
-        window.mozRequestAnimationFrame    ||
-        function(callback) {window.setTimeout(callback, 1000/60)};
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame    ||
+    function(callback) {window.setTimeout(callback, 1000/60)};
 
 //creates a new paddle with given dimensions
 //and speed, etc
@@ -75,12 +76,12 @@ Paddle.prototype.render = function() {
 
 //New paddle of that size/dimension
 function Player() {
-    this.paddle = new Paddle(175, 580, 50, 10);
+    this.paddle = new Paddle(window.innerWidth/2-50, window.innerHeight-20, 100, 15);
 }
 
 //new paddle of that size/dimension
 function Computer() {
-    this.paddle = new Paddle(175, 10, 50, 10);
+    this.paddle = new Paddle(window.innerWidth/2-50, 10, 100, 15);
 }
 
 //renders a player paddle
@@ -98,7 +99,7 @@ function Ball(x, y) {
     this.x = x;
     this.y = y;
     this.x_speed = 0;
-    this.y_speed = 3;
+    this.y_speed = 10;
     this.radius = 5;
 }
 
@@ -114,11 +115,11 @@ Ball.prototype.render = function() {
 //calls a player and computer and makes a ball at the specified coordinate
 var player = new Player();
 var computer = new Computer();
-var ball = new Ball(200, 300);
+var ball = new Ball(window.innerWidth/2, window.innerHeight/2);
 
 //Updates the ball
 Ball.prototype.update = function(paddle1, paddle2) {
-    //adds the new speed to the old one        
+    //adds the new speed to the old one
     this.x += this.x_speed;
     this.y += this.y_speed;
     //radius is 5, so it'll hit the wall 5 pixels before
@@ -131,33 +132,36 @@ Ball.prototype.update = function(paddle1, paddle2) {
     if(this.x - 5 < 0) { // hitting the left wall
         this.x = 5;
         this.x_speed = -this.x_speed;
-    } else if(this.x + 5 > 400) { // hitting the right wall
-        this.x = 395;
+    } else if(this.x + 5 > window.innerWidth) { // hitting the right wall
+        this.x = window.innerWidth-5;
         this.x_speed = -this.x_speed;
     }
 
-    if(this.y < 0 || this.y > 600) { // a point was scored
+    if(this.y < 0 || this.y > window.innerHeight) { // a point was scored
+        this.y_speed = 0;
         this.x_speed = 0;
-        this.y_speed = 3;
-        this.x = 200;
-        this.y = 300;
+        window.setTimeout(function(){alert("Score!")});
+        this.x_speed = 0;
+        this.y_speed = 10;
+        this.x = window.innerWidth/2;
+        this.y = window.innerHeight/2;
     }
 
     //Condition for if it's in the top half
-    if(top_y > 300) {
+    if(top_y > window.innerHeight/2) {
         if(top_y < (paddle1.y + paddle1.height) && bottom_y > paddle1.y && top_x < (paddle1.x + paddle1.width)
             && bottom_x > paddle1.x) {
             // hit the player's paddle
-            this.y_speed = -3;
+            this.y_speed = -10;
             this.x_speed += (paddle1.x_speed / 2);
             this.y += this.y_speed;
         }
-    //condition for bottom half
+        //condition for bottom half
     } else {
         if(top_y < (paddle2.y + paddle2.height) && bottom_y > paddle2.y && top_x < (paddle2.x + paddle2.width)
             && bottom_x > paddle2.x) {
             // hit the computer's paddle
-            this.y_speed = 3;
+            this.y_speed = 10;
             this.x_speed += (paddle2.x_speed / 2);
             this.y += this.y_speed;
         }
@@ -170,10 +174,10 @@ Player.prototype.update = function() {
         //Conditions for a couple keys
         var value = Number(key);
         if(value == 37) { // left arrow
-            this.paddle.move(-4, 0);
+            this.paddle.move(-10, 0);
         } else if (value == 39) { // right arrow
-            this.paddle.move(4, 0);
-        } 
+            this.paddle.move(10, 0);
+        }
     }
 };
 
@@ -187,8 +191,8 @@ Paddle.prototype.move = function(x, y) {
     if(this.x < 0) { // all the way to the left
         this.x = 0;
         this.x_speed = 0;
-    } else if (this.x + this.width > 400) { // all the way to the right
-        this.x = 400 - this.width;
+    } else if (this.x + this.width > window.innerWidth) { // all the way to the right
+        this.x = window.innerWidth - this.width;
         this.x_speed = 0;
     }
 };
@@ -200,15 +204,15 @@ Computer.prototype.update = function(ball) {
     var diff = -((this.paddle.x + (this.paddle.width / 2)) - x_pos);
     //helps make movement more efficient
     if(diff < 0 && diff < -4) { // max speed left
-        diff = -5;
+        diff = -10;
     } else if(diff > 0 && diff > 4) { // max speed right
-        diff = 5;
+        diff = 10;
     }
     this.paddle.move(diff, 0);
     //won't fly offscreen
     if(this.paddle.x < 0) {
         this.paddle.x = 0;
-    } else if (this.paddle.x + this.paddle.width > 400) {
-        this.paddle.x = 400 - this.paddle.width;
+    } else if (this.paddle.x + this.paddle.width > window.innerWidth) {
+        this.paddle.x = window.innerWidth - this.paddle.width;
     }
 };

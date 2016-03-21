@@ -3,7 +3,10 @@
  */
 var context;
 var keysDown = {};
-var balls;
+var balls = 1;
+var ballRadius = 5;
+var computerScore = 0;
+var humanScore = 0;
 
 window.addEventListener("keydown", function(event) {
     keysDown[event.keyCode] = true;
@@ -57,6 +60,35 @@ var animate = window.requestAnimationFrame ||
     window.mozRequestAnimationFrame    ||
     function(callback) {window.setTimeout(callback, 1000/60)};
 
+function PowerUp(power, x, y) {
+    //Selects a random number, there will be three powers
+    switch(this.power = Math.floor(Math.random()*3 + 1)) {
+        case 1:
+            balls = 2;
+            ball2 = new Ball(window.innerWidth/2, window.innerHeight/2);
+            break;
+        case 2:
+            setSpeed(ball);
+            break;
+        case 3:
+            ballRadius = 10;
+            break;
+    }
+
+    this.x = window.innerWidth/2;
+    this.y = window.innerHeight/2;
+    this.radius = 15;
+}
+
+function setSpeed(ball) {
+    ball.x_speed *= 2;
+    ball.y_speed *= 2;
+}
+
+function setLocation(paddle) {
+    paddle.width *= 2;
+}
+
 //creates a new paddle with given dimensions
 //and speed, etc
 function Paddle(x, y, width, height) {
@@ -76,12 +108,12 @@ Paddle.prototype.render = function() {
 
 //New paddle of that size/dimension
 function Player() {
-    this.paddle = new Paddle(window.innerWidth/2-50, window.innerHeight-20, 100, 15);
+    this.paddle = new Paddle(window.innerWidth/2-65, window.innerHeight-20, 130, 15);
 }
 
 //new paddle of that size/dimension
 function Computer() {
-    this.paddle = new Paddle(window.innerWidth/2-50, 10, 100, 15);
+    this.paddle = new Paddle(window.innerWidth/2-65, 10, 130, 15);
 }
 
 //renders a player paddle
@@ -99,8 +131,9 @@ function Ball(x, y) {
     this.x = x;
     this.y = y;
     this.x_speed = 0;
-    this.y_speed = 10;
-    this.radius = 5;
+    this.y_speed = 12;
+    this.radius = ballRadius;
+    ballRadius = 5;
 }
 
 //Renders the path of the ball
@@ -140,11 +173,46 @@ Ball.prototype.update = function(paddle1, paddle2) {
     if(this.y < 0 || this.y > window.innerHeight) { // a point was scored
         this.y_speed = 0;
         this.x_speed = 0;
-        window.setTimeout(function(){alert("Score!")});
+        //Changes the alert message depending on where the ball went off
+        //could be shorter, just not sure how offhand
+        if (this.y > window.innerHeight) {
+            window.setTimeout(
+                function(){
+                    computerScore++;
+                    alert("Computer score! " + computerOrHumanScoreFirst())
+                }
+            );
+        } else if (this.y < 0) {
+            window.setTimeout(
+                function(){
+                    humanScore++;
+                    alert("Human score! " + computerOrHumanScoreFirst())
+                }
+            );
+        }
+
+        //busies the computer for a bit
+        window.setTimeout(
+            function() {
+                for (var i = 0; i < 1000000000; i++) {}
+            }
+        );
+
+        //sets the paddles back to default
+        player = new Player();
+        computer = new Computer();
         this.x_speed = 0;
-        this.y_speed = 10;
+        this.y_speed = 12;
         this.x = window.innerWidth/2;
         this.y = window.innerHeight/2;
+    }
+
+    function computerOrHumanScoreFirst() {
+        if (humanScore > computerScore) {
+            return humanScore + '-' + computerScore;
+        } else {
+            return computerScore + '-' + humanScore;
+        }
     }
 
     //Condition for if it's in the top half
@@ -174,9 +242,9 @@ Player.prototype.update = function() {
         //Conditions for a couple keys
         var value = Number(key);
         if(value == 37) { // left arrow
-            this.paddle.move(-10, 0);
+            this.paddle.move(-12, 0);
         } else if (value == 39) { // right arrow
-            this.paddle.move(10, 0);
+            this.paddle.move(12, 0);
         }
     }
 };
@@ -204,9 +272,9 @@ Computer.prototype.update = function(ball) {
     var diff = -((this.paddle.x + (this.paddle.width / 2)) - x_pos);
     //helps make movement more efficient
     if(diff < 0 && diff < -4) { // max speed left
-        diff = -10;
+        diff = -12;
     } else if(diff > 0 && diff > 4) { // max speed right
-        diff = 10;
+        diff = 12;
     }
     this.paddle.move(diff, 0);
     //won't fly offscreen

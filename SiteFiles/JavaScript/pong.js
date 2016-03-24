@@ -3,10 +3,11 @@
  */
 var context;
 var keysDown = {};
-var balls = 1;
 var ballRadius = 5;
 var computerScore = 0;
 var humanScore = 0;
+var power = false;
+var startSpeed = 12;
 
 window.addEventListener("keydown", function(event) {
     keysDown[event.keyCode] = true;
@@ -60,33 +61,24 @@ var animate = window.requestAnimationFrame ||
     window.mozRequestAnimationFrame    ||
     function(callback) {window.setTimeout(callback, 1000/60)};
 
-function PowerUp(power, x, y) {
+function PowerUp(x) {
     //Selects a random number, there will be three powers
-    switch(this.power = Math.floor(Math.random()*3 + 1)) {
+    switch(x) {
         case 1:
-            balls = 2;
-            ball2 = new Ball(window.innerWidth/2, window.innerHeight/2);
+            multiball = true;
+            //ball2 = new Ball(window.innerWidth/2, window.innerHeight/2);
             break;
         case 2:
             setSpeed(ball);
             break;
         case 3:
-            ballRadius = 10;
+            ballRadius = 15;
             break;
     }
-
-    this.x = window.innerWidth/2;
-    this.y = window.innerHeight/2;
-    this.radius = 15;
 }
 
-function setSpeed(ball) {
-    ball.x_speed *= 2;
-    ball.y_speed *= 2;
-}
-
-function setLocation(paddle) {
-    paddle.width *= 2;
+function setSpeed() {
+    startSpeed*=2;
 }
 
 //creates a new paddle with given dimensions
@@ -131,7 +123,7 @@ function Ball(x, y) {
     this.x = x;
     this.y = y;
     this.x_speed = 0;
-    this.y_speed = 12;
+    this.y_speed = startSpeed;
     this.radius = ballRadius;
     ballRadius = 5;
 }
@@ -152,21 +144,31 @@ var ball = new Ball(window.innerWidth/2, window.innerHeight/2);
 
 //Updates the ball
 Ball.prototype.update = function(paddle1, paddle2) {
+    if (! power) {
+        window.setTimeout(
+            function () {
+                PowerUp(chooseRandom(3));
+            }
+        );
+
+        power = true;
+    }
     //adds the new speed to the old one
     this.x += this.x_speed;
     this.y += this.y_speed;
+    this.radius = ballRadius;
     //radius is 5, so it'll hit the wall 5 pixels before
     //the middle, so we offset it by 5
-    var top_x = this.x - 5;
-    var top_y = this.y - 5;
-    var bottom_x = this.x + 5;
-    var bottom_y = this.y + 5;
+    var top_x = this.x - ballRadius;
+    var top_y = this.y - ballRadius;
+    var bottom_x = this.x + ballRadius;
+    var bottom_y = this.y + ballRadius;
 
-    if(this.x - 5 < 0) { // hitting the left wall
-        this.x = 5;
+    if(this.x - ballRadius < 0) { // hitting the left wall
+        this.x = ballRadius;
         this.x_speed = -this.x_speed;
-    } else if(this.x + 5 > window.innerWidth) { // hitting the right wall
-        this.x = window.innerWidth-5;
+    } else if(this.x + ballRadius > window.innerWidth) { // hitting the right wall
+        this.x = window.innerWidth-ballRadius;
         this.x_speed = -this.x_speed;
     }
 
@@ -199,12 +201,16 @@ Ball.prototype.update = function(paddle1, paddle2) {
         );
 
         //sets the paddles back to default
-        player = new Player();
-        computer = new Computer();
+        player       = new Player();
+        computer     = new Computer();
         this.x_speed = 0;
         this.y_speed = 12;
-        this.x = window.innerWidth/2;
-        this.y = window.innerHeight/2;
+        this.x       = window.innerWidth/2;
+        this.y       = window.innerHeight/2;
+        startSpeed   = 12;
+        keysDown     = {};
+        power        = false;
+        ballRadius   = 5;
     }
 
     function computerOrHumanScoreFirst() {
@@ -215,12 +221,16 @@ Ball.prototype.update = function(paddle1, paddle2) {
         }
     }
 
+    function chooseRandom(x) {
+        return Math.floor(Math.random() * x+1);
+    }
+
     //Condition for if it's in the top half
     if(top_y > window.innerHeight/2) {
         if(top_y < (paddle1.y + paddle1.height) && bottom_y > paddle1.y && top_x < (paddle1.x + paddle1.width)
             && bottom_x > paddle1.x) {
             // hit the player's paddle
-            this.y_speed = -10;
+            this.y_speed = -startSpeed;
             this.x_speed += (paddle1.x_speed / 2);
             this.y += this.y_speed;
         }
@@ -229,7 +239,7 @@ Ball.prototype.update = function(paddle1, paddle2) {
         if(top_y < (paddle2.y + paddle2.height) && bottom_y > paddle2.y && top_x < (paddle2.x + paddle2.width)
             && bottom_x > paddle2.x) {
             // hit the computer's paddle
-            this.y_speed = 10;
+            this.y_speed = startSpeed;
             this.x_speed += (paddle2.x_speed / 2);
             this.y += this.y_speed;
         }
